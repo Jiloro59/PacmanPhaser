@@ -13,6 +13,10 @@
         parent: "phaser-example",
         pixelArt: true,
         backgroundColor: "#1a1a2d",
+        physics: {
+        default: 'arcade',
+        arcade: { debug: true }
+    },
         scene: {
           preload: preload,
           create: create,
@@ -40,114 +44,172 @@
         var tileset = map.addTilesetImage("tiles", null, 32, 32, 1, 2);
         var layer = map.createLayer(0, tileset, 0, 0);
 
-        var player = this.add.image(32 + 16, 32 + 16, "pacman");
+        var player = this.physics.add.image(32 + 16, 32 + 16, "pacman");
         var ghost1 = this.add.image(256 + 16, 320 + 16, "ghost1");
         var ghost2 = this.add.image(288 + 16, 320 + 16, "ghost2");
         var ghost3 = this.add.image(320 + 16, 320 + 16, "ghost3");
         var ghost4 = this.add.image(288 + 16, 288 + 16, "ghost4");
 
 
+    var physics = this.physics
+    var input = this.input
 
-        //  Left
+    //  Left
+    this.input.keyboard.on('keydown-Q', function (event) {
+        
+        var tile = layer.getTileAtWorldXY(player.x - 32, player.y, true);
 
-        this.input.keyboard.on("keydown-Q", function (event) {
-          var tile = layer.getTileAtWorldXY(player.x - 32, player.y, true);
+        while(tile.index !== 2){
+            var tile = layer.getTileAtWorldXY(tile.pixelX - 32, tile.pixelY, true);
+        }
 
-          if (tile.index === 2) {
-            //  Blocked, we can't move
-          } else {
-            player.x -= 32;
-            player.angle = 180;
-          }
-        });
+        console.log(player.x-tile.pixelX)
+        if(player.x-tile.pixelX > 32 + 18){
+            block = physics.add.image(tile.pixelX +16 +5,tile.pixelY +16 , 'tile');
+            block.visible = true;
+            console.log(block)
 
-        this.input.keyboard.on("keydown-LEFT", function (event) {
-          var tile = layer.getTileAtWorldXY(player.x - 32, player.y, true);
+            // Move at 100 px/s:
+            player.setVelocity(-100, 0);
 
-          if (tile.index === 2) {
-            //  Blocked, we can't move
-          } else {
-            player.x -= 32;
-            player.angle = 180;
-          }
-        });
-
-
-        //  Right
-
-        this.input.keyboard.on("keydown-D", function (event) {
-          var tile = layer.getTileAtWorldXY(player.x + 32, player.y, true);
-
-          if (tile.index === 2) {
-            //  Blocked, we can't move
-          } else {
-            player.x += 32;
-            player.angle = 0;
-          }
-        });
-
-        this.input.keyboard.on("keydown-RIGHT", function (event) {
-          var tile = layer.getTileAtWorldXY(player.x + 32, player.y, true);
-
-          if (tile.index === 2) {
-            //  Blocked, we can't move
-          } else {
-            player.x += 32;
-            player.angle = 0;
-          }
-        });
+            var collider = physics.add.overlap(player, block, function (playerOnBlock)
+            {
+                playerOnBlock.body.stop();
+    
+                physics.world.removeCollider(collider);
+            }, null, this);
+        }
 
 
-        //  Up
+    });
 
-        this.input.keyboard.on("keydown-Z", function (event) {
-          var tile = layer.getTileAtWorldXY(player.x, player.y - 32, true);
+    //  Right
+    this.input.keyboard.on('keydown-D', function (event) {
 
-          if (tile.index === 2) {
-            //  Blocked, we can't move
-          } else {
-            player.y -= 32;
-            player.angle = -90;
-          }
-        });
+        var tile = layer.getTileAtWorldXY(player.x , player.y, true);
 
-        this.input.keyboard.on("keydown-UP", function (event) {
-          var tile = layer.getTileAtWorldXY(player.x, player.y - 32, true);
+        while(tile.index !== 2){
+            var tile = layer.getTileAtWorldXY(tile.pixelX + 32, tile.pixelY, true);
+        }
+        console.log(player.x-tile.pixelX)
+        if(player.x-tile.pixelX < -18){
+            block = physics.add.image(tile.pixelX +16 -5,tile.pixelY +16, 'tile');
+            block.visible = true;
+            console.log(block)
 
-          if (tile.index === 2) {
-            //  Blocked, we can't move
-          } else {
-            player.y -= 32;
-            player.angle = -90;
-          }
-        });
+            // Move at 100 px/s:
+            player.setVelocity(+100, 0);
+
+        }
+
+        var collider = physics.add.overlap(player, block, function (playerOnBlock){
+            playerOnBlock.body.stop();
+            physics.world.removeCollider(collider);
+        }, null, this);
+
+    });
+
+    //  Up
+    this.input.keyboard.on('keydown-Z', function (event) {
+
+        var tile = layer.getTileAtWorldXY(player.x, player.y - 32, true);
+
+        while(tile.index !== 2){
+            var tile = layer.getTileAtWorldXY(tile.pixelX , tile.pixelY -32, true);
+        }
+
+        console.log(player.y-tile.pixelY)
+        if(player.y-tile.pixelY > +32+18){
+            block = physics.add.image(tile.pixelX +16 ,tile.pixelY +16 +5, 'tile');
+            block.visible = true;
+            console.log(block)
+
+            // Move at 100 px/s:
+            player.setVelocity(0, -100);
+
+            var collider = physics.add.overlap(player, block, function (playerOnBlock)
+            {
+                playerOnBlock.body.stop();
+    
+                physics.world.removeCollider(collider);
+            }, null, this);
+        }
+
+
+    });
+
+    //  Down
+    this.input.keyboard.on('keydown-S', function (event) {
+
+        var tile = layer.getTileAtWorldXY(player.x, player.y + 32, true);
+
+        while(tile.index !== 2){
+            var tile = layer.getTileAtWorldXY(tile.pixelX , tile.pixelY +32, true);
+        }
+
+        console.log(player.y-tile.pixelY)
+        if(player.y-tile.pixelY < -32 +14){
+            block = physics.add.image(tile.pixelX +16 ,tile.pixelY +16 -5, 'tile');
+            block.visible = true;
+            console.log(block)
+
+            // Move at 100 px/s:
+            player.setVelocity(0, +100);
+
+            var collider = physics.add.overlap(player, block, function (playerOnBlock)
+            {
+                playerOnBlock.body.stop();
+    
+                physics.world.removeCollider(collider);
+            }, null, this);
+        }
 
 
 
-        //  Down
+//         block = physics.add.image(tile.pixelX +16, tile.pixelY +16 -4, 'tile');
+//         block.visible = false;
+//         player.setPosition(player.x,player.y -2);
 
-        this.input.keyboard.on("keydown-S", function (event) {
-          var tile = layer.getTileAtWorldXY(player.x, player.y + 32, true);
+        
+//         // Move at 100 px/s:
+//         physics.moveToObject(player, block, 100);
 
-          if (tile.index === 2) {
-            //  Blocked, we can't move
-          } else {
-            player.y += 32;
-            player.angle = 90;
-          }
-        });
+// var collider = physics.add.overlap(player, block, function (playerOnBlock)
+// {
+//     playerOnBlock.body.stop();
 
-        this.input.keyboard.on("keydown-DOWN", function (event) {
-          var tile = layer.getTileAtWorldXY(player.x, player.y + 32, true);
+//     physics.world.removeCollider(collider);
+// }, null, this);
 
-          if (tile.index === 2) {
-            //  Blocked, we can't move
-          } else {
-            player.y += 32;
-            player.angle = 90;
-          }
-        });
-      }
+
+     });
+
+}
+
+      //   //  Left
+
+      //   this.input.keyboard.on("keydown-Q", function (event) {
+      //     var tile = layer.getTileAtWorldXY(player.x - 32, player.y, true);
+
+      //     if (tile.index === 2) {
+      //       //  Blocked, we can't move
+      //     } else {
+      //       player.x -= 32;
+      //       player.angle = 180;
+      //     }
+      //   });
+
+      //   this.input.keyboard.on("keydown-LEFT", function (event) {
+      //     var tile = layer.getTileAtWorldXY(player.x - 32, player.y, true);
+
+      //     if (tile.index === 2) {
+      //       //  Blocked, we can't move
+      //     } else {
+      //       player.x -= 32;
+      //       player.angle = 180;
+      //     }
+      //   });
+
       
     </script>
   </body>
