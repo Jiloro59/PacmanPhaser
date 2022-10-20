@@ -20,10 +20,19 @@
         scene: {
           preload: preload,
           create: create,
+          update: update
         },
       };
 
       var game = new Phaser.Game(config);
+
+      this.player = null;
+      this.map = null;
+      this.layer = null;
+      var directions = [];
+      var previousDirection = null;
+      var currentDirection = null;
+      var pileCount = 0;
 
       function preload() {
         this.load.image("tiles", "assets/drawtiles-spaced.png");
@@ -36,181 +45,170 @@
       }
 
       function create() {
-        var map = this.make.tilemap({
+
+         map = this.make.tilemap({
           key: "map",
           tileWidth: 32,
           tileHeight: 32,
         });
         var tileset = map.addTilesetImage("tiles", null, 32, 32, 1, 2);
-        var layer = map.createLayer(0, tileset, 0, 0);
+        layer = map.createLayer(0, tileset, 0, 0);
 
-        var player = this.physics.add.image(32 + 16, 32 + 16, "pacman");
+        map.setCollision(20, true, this.layer);
+
+        player = this.physics.add.image(32 + 16, 32 + 16, "pacman");
+
         var ghost1 = this.add.image(256 + 16, 320 + 16, "ghost1");
         var ghost2 = this.add.image(288 + 16, 320 + 16, "ghost2");
         var ghost3 = this.add.image(320 + 16, 320 + 16, "ghost3");
         var ghost4 = this.add.image(288 + 16, 288 + 16, "ghost4");
 
+        const physics = this.physics
 
-    var physics = this.physics
-    var input = this.input
+        //  Left
+        this.input.keyboard.on('keydown-Q', function (event) {
+            currentDirection='left'
+            var tile = layer.getTileAtWorldXY(player.x - 32, player.y, true);
 
-    //  Left
-    this.input.keyboard.on('keydown-Q', function (event) {
-        
-        var tile = layer.getTileAtWorldXY(player.x - 32, player.y, true);
+            while(tile.index !== 2){
+                var tile = layer.getTileAtWorldXY(tile.pixelX - 32, tile.pixelY, true);
+            }
 
-        while(tile.index !== 2){
-            var tile = layer.getTileAtWorldXY(tile.pixelX - 32, tile.pixelY, true);
-        }
+            if(player.x-tile.pixelX > 32 + 18){
+                Center(player,tile);
+                block = physics.add.image(tile.pixelX +16 +5,tile.pixelY +16 , 'tile');
+                block.visible = true;
+                previousDirection='left';
+                console.log(block)
 
-        console.log(player.x-tile.pixelX)
-        if(player.x-tile.pixelX > 32 + 18){
-            block = physics.add.image(tile.pixelX +16 +5,tile.pixelY +16 , 'tile');
-            block.visible = true;
-            console.log(block)
+                // Move at 100 px/s:
+                player.setVelocity(-100, 0);
 
-            // Move at 100 px/s:
-            player.setVelocity(-100, 0);
+                Collider(player, block)
+            }
+        });
 
-            var collider = physics.add.overlap(player, block, function (playerOnBlock)
-            {
+        //  Right
+        this.input.keyboard.on('keydown-D', function (event) {
+            currentDirection='right'
+            var tile = layer.getTileAtWorldXY(player.x , player.y, true);
+
+            while(tile.index !== 2){
+                var tile = layer.getTileAtWorldXY(tile.pixelX + 32, tile.pixelY, true);
+            }
+            console.log(player.x-tile.pixelX)
+            if(player.x-tile.pixelX < -18){
+                Center(player,tile);
+                block = physics.add.image(tile.pixelX +16 -5,tile.pixelY +16, 'tile');
+                block.visible = true;
+                previousDirection='right';
+                
+                console.log(block)
+                
+                // Move at 100 px/s:
+                player.setVelocity(+100, 0);
+                
+                Collider(player, block)
+            }
+        });
+            
+        //  Up
+        this.input.keyboard.on('keydown-Z', function (event) {
+            currentDirection='up'
+            var tile = layer.getTileAtWorldXY(player.x, player.y - 32, true);
+
+            while(tile.index !== 2){
+                var tile = layer.getTileAtWorldXY(tile.pixelX , tile.pixelY -32, true);
+            }
+
+            if(player.y-tile.pixelY > +32+18){
+                Center(player,tile);
+                block = physics.add.image(tile.pixelX +16 ,tile.pixelY +16 +5, 'tile');
+                block.visible = true;
+                previousDirection='up';
+
+                // Move at 100 px/s:
+                player.setVelocity(0, -100);
+
+                Collider(player, block)
+            }
+        });
+
+        //  Down
+        this.input.keyboard.on('keydown-S', function (event) {
+            currentDirection='down'
+
+            var tile = layer.getTileAtWorldXY(player.x, player.y + 32, true);
+
+            while(tile.index !== 2){
+                var tile = layer.getTileAtWorldXY(tile.pixelX , tile.pixelY +32, true);
+            }
+
+            // console.log(player.y-tile.pixelY)
+            if(player.y-tile.pixelY < -32 +14){
+                Center(player,tile);
+                block = physics.add.image(tile.pixelX +16 ,tile.pixelY +16 -5, 'tile');
+                block.visible = true;
+                previousDirection='down';
+
+                // Move at 100 px/s:
+                player.setVelocity(0, +100);
+                
+                Collider(player, block)
+            }
+        });
+
+        function Center(player,tile){
+            
+            if (previousDirection ==='up'){
+                block.destroy();
+                if((player.y-16)%32 <16){player.y -= (player.y-16)%32}
+                else  player.y += 32-((player.y-16)%32)
+                }
+
+            if (previousDirection ==='down'){
+                block.destroy();
+                if((player.y-16)%32 >16){player.y += (32-(player.y-16)%32)}
+                else player.y -= (player.y-16)%32
+            }
+            
+            if (previousDirection ==='right'){
+                block.destroy();
+                if((player.x-16)%32 >16){player.x += 32-((player.x-16)%32)}   
+                else player.x -= (player.x-16)%32
+            }
+
+            if (previousDirection ==='left'){
+                block.destroy();
+                if((player.y-16)%32 <16){player.x -= (player.x-16)%32}
+                else  player.x += 32-((player.x-16)%32)
+            }
+        }  
+        function Collider(player, block){
+            var collider = physics.add.overlap(player, block, function (playerOnBlock){
                 playerOnBlock.body.stop();
-    
                 physics.world.removeCollider(collider);
             }, null, this);
         }
+     }
 
+function update() {
 
-    });
+  var x = (Math.ceil(player.x/32)-1);
+  var y = (Math.ceil(player.y/32)-1);
 
-    //  Right
-    this.input.keyboard.on('keydown-D', function (event) {
+  directions['none']  = map.getTileAt(x, y);
+  directions['left']  = map.getTileAt(x-1, y);
+  directions['right']  = map.getTileAt(x+1, y);
+  directions['up']  = map.getTileAt(x, y-1);
+  directions['down'] =map.getTileAt(x, y+1);
 
-        var tile = layer.getTileAtWorldXY(player.x , player.y, true);
-
-        while(tile.index !== 2){
-            var tile = layer.getTileAtWorldXY(tile.pixelX + 32, tile.pixelY, true);
-        }
-        console.log(player.x-tile.pixelX)
-        if(player.x-tile.pixelX < -18){
-            block = physics.add.image(tile.pixelX +16 -5,tile.pixelY +16, 'tile');
-            block.visible = true;
-            console.log(block)
-
-            // Move at 100 px/s:
-            player.setVelocity(+100, 0);
-
-        }
-
-        var collider = physics.add.overlap(player, block, function (playerOnBlock){
-            playerOnBlock.body.stop();
-            physics.world.removeCollider(collider);
-        }, null, this);
-
-    });
-
-    //  Up
-    this.input.keyboard.on('keydown-Z', function (event) {
-
-        var tile = layer.getTileAtWorldXY(player.x, player.y - 32, true);
-
-        while(tile.index !== 2){
-            var tile = layer.getTileAtWorldXY(tile.pixelX , tile.pixelY -32, true);
-        }
-
-        console.log(player.y-tile.pixelY)
-        if(player.y-tile.pixelY > +32+18){
-            block = physics.add.image(tile.pixelX +16 ,tile.pixelY +16 +5, 'tile');
-            block.visible = true;
-            console.log(block)
-
-            // Move at 100 px/s:
-            player.setVelocity(0, -100);
-
-            var collider = physics.add.overlap(player, block, function (playerOnBlock)
-            {
-                playerOnBlock.body.stop();
-    
-                physics.world.removeCollider(collider);
-            }, null, this);
-        }
-
-
-    });
-
-    //  Down
-    this.input.keyboard.on('keydown-S', function (event) {
-
-        var tile = layer.getTileAtWorldXY(player.x, player.y + 32, true);
-
-        while(tile.index !== 2){
-            var tile = layer.getTileAtWorldXY(tile.pixelX , tile.pixelY +32, true);
-        }
-
-        console.log(player.y-tile.pixelY)
-        if(player.y-tile.pixelY < -32 +14){
-            block = physics.add.image(tile.pixelX +16 ,tile.pixelY +16 -5, 'tile');
-            block.visible = true;
-            console.log(block)
-
-            // Move at 100 px/s:
-            player.setVelocity(0, +100);
-
-            var collider = physics.add.overlap(player, block, function (playerOnBlock)
-            {
-                playerOnBlock.body.stop();
-    
-                physics.world.removeCollider(collider);
-            }, null, this);
-        }
-
-
-
-//         block = physics.add.image(tile.pixelX +16, tile.pixelY +16 -4, 'tile');
-//         block.visible = false;
-//         player.setPosition(player.x,player.y -2);
-
-        
-//         // Move at 100 px/s:
-//         physics.moveToObject(player, block, 100);
-
-// var collider = physics.add.overlap(player, block, function (playerOnBlock)
-// {
-//     playerOnBlock.body.stop();
-
-//     physics.world.removeCollider(collider);
-// }, null, this);
-
-
-     });
-
+    if(directions['none'].index === 3) { 
+        directions['none'].index = 0;
+        pileCount++;
+    console.log(pileCount);
+    }
 }
-
-      //   //  Left
-
-      //   this.input.keyboard.on("keydown-Q", function (event) {
-      //     var tile = layer.getTileAtWorldXY(player.x - 32, player.y, true);
-
-      //     if (tile.index === 2) {
-      //       //  Blocked, we can't move
-      //     } else {
-      //       player.x -= 32;
-      //       player.angle = 180;
-      //     }
-      //   });
-
-      //   this.input.keyboard.on("keydown-LEFT", function (event) {
-      //     var tile = layer.getTileAtWorldXY(player.x - 32, player.y, true);
-
-      //     if (tile.index === 2) {
-      //       //  Blocked, we can't move
-      //     } else {
-      //       player.x -= 32;
-      //       player.angle = 180;
-      //     }
-      //   });
-
-      
     </script>
   </body>
 </html>
