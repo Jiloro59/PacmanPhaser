@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 
 export default class PacmanScene extends Phaser.Scene {
+  constructor() {
+    super("PacmanScene");
+}
   layer = null;
   player = null;
   map = null;
@@ -51,6 +54,8 @@ export default class PacmanScene extends Phaser.Scene {
         this.previousDirection = null;
         this.currentDirection = null;
         this.block.destroy();
+        }else{
+          this.scene.start("Game Over",{score: this.pileCount})
         }
       this.lifes -= 1;
     });
