@@ -11,6 +11,10 @@ export default class PacmanScene extends Phaser.Scene {
   currentDirection = null;
   previousDirection = null;
   pileCount =0;
+  PilesNumber = 0;
+  score = 0;
+  scoreDisplay= null;
+  lifeDisplay= null;
 
   preload() {
     this.load.image('tiles', 'assets/images/drawtiles-spaced.png');
@@ -42,6 +46,8 @@ export default class PacmanScene extends Phaser.Scene {
     this.enemyGroup.add(this.ghost3, true);
     this.enemyGroup.add(this.ghost4, true);
 
+    //rencontre entre Pacman et fantome
+
     this.physics.add.overlap(this.player, this.enemyGroup, () => {
       if(this.lifes >0){
         this.player.angle = 0;
@@ -54,16 +60,30 @@ export default class PacmanScene extends Phaser.Scene {
         this.previousDirection = null;
         this.currentDirection = null;
         this.block.destroy();
+        this.lifes -= 1;
+        this.lifeDisplay.setText('Lifes : ' + this.lifes )
+
         }else{
-          this.scene.start("Game Over",{score: this.pileCount})
+
+        // redirection écran Game Over
+
+          this.scene.start("Game Over",{score: this.score})
         }
-      this.lifes -= 1;
     });
 
     this.input.keyboard.on('keydown', (e) => this.pressKeyHandler(e));
     setInterval(() => {
       this.moveDirection();
     }, 100);
+
+    //affichage score et vies restantes
+
+    this.scoreDisplay =this.add.text(10, 10,'Score : ' + this.score , { fill: '#0f0' });
+    this.lifeDisplay =this.add.text(150, 10,'Lifes : 3 ' , { fill: '#0f0' });
+
+    this.PilesNumber =this.countPiles ();
+    console.log(this.PilesNumber);
+
   }
   update() {
 
@@ -72,13 +92,20 @@ export default class PacmanScene extends Phaser.Scene {
     if (x >18)x=18
     if (x <0)x=0
     
+    //suppression des piles 'mangés' par le Pacman 
+
     var playerPosition = this.map.getTileAt(x, y);
 
     if(playerPosition.index === 3) { 
       playerPosition.index = 0;
         this.pileCount++;
-    // console.log(pileCount);
+        this.score += 100;
+
     }
+
+    //mise à jour du score
+
+    this.scoreDisplay.setText('Score : ' + this.score )
   }
 
   Center(player) {
@@ -164,6 +191,8 @@ export default class PacmanScene extends Phaser.Scene {
         }
       }, null, this);
   }
+
+  // mouvement des fantomes
 
   moveDirection() {
     let moveDir = ['left', 'right', 'up', 'down'];
@@ -365,5 +394,20 @@ export default class PacmanScene extends Phaser.Scene {
 
       this.Collider(this.player, this.block,tile);
     }
+  }
+
+  //Le nombres de piles peux changer selon les niveaux
+
+  countPiles () {
+    var count = 0
+    for(var y = 0; y < this.map.height; y++) {
+      for(var x = 0; x < this.map.width; x++) {
+        var tile =this.map.getTileAt(x, y);
+        if (tile.index === 3)
+          count++
+
+      }
+    }
+    return count
   }
 }

@@ -7,9 +7,9 @@ export default  class GameOver extends Phaser.Scene {
 
 
     create(score){
-            console.log(score)
-        const gameOver = this.add.text(240, 300, 'GAME OVER', { fill: '#0f0' });
-         this.add.text(240, 350,'Score : ' + score.score , { fill: '#0f0' });
+
+        this.add.text(240, 300, 'GAME OVER', { fill: '#0f0' });
+        this.add.text(240, 350,'Score : ' + score.score , { fill: '#0f0' });
 
 
         // newGame.setInteractive();
