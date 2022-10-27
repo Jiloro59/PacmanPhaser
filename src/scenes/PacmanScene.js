@@ -1,9 +1,15 @@
 import Phaser from 'phaser';
 
 export default class PacmanScene extends Phaser.Scene {
+
   constructor() {
     super("PacmanScene");
 }
+
+// init(props) {
+//   const { level = 1 } = props
+//   this.currentLevel = level
+// }
   layer = null;
   player = null;
   map = null;
@@ -15,11 +21,15 @@ export default class PacmanScene extends Phaser.Scene {
   score = 0;
   scoreDisplay= null;
   lifeDisplay= null;
-
+  levelDisplay= null;
+  level = 1
+  
   preload() {
     this.load.image('tiles', 'assets/images/drawtiles-spaced.png');
     this.load.image('pacman', 'assets/images/Pacman.png');
-    this.load.tilemapCSV('map', 'assets/grid.csv');
+    for(var i = 1; i<9;i++){
+      this.load.tilemapCSV('level'+i, 'assets/grid'+i+'.csv');
+    }
     this.load.image('ghost1', 'assets/images/Ghost1.png');
     this.load.image('ghost2', 'assets/images/Ghost2.png');
     this.load.image('ghost3', 'assets/images/Ghost3.png');
@@ -28,13 +38,13 @@ export default class PacmanScene extends Phaser.Scene {
 
   create() {
     this.map = this.make.tilemap({
-      key: 'map',
+      key: 'level'+ this.level,
       tileWidth: 32,
       tileHeight: 32,
     });
     const tileset = this.map.addTilesetImage('tiles', null, 32, 32, 1, 2);
     this.layer = this.map.createLayer(0, tileset, 0, 0);
-    this.player = this.physics.add.image(32 + 16, 32 + 16, 'pacman');
+    this.player = this.physics.add.image(32*9 + 16, 32*12 + 16, 'pacman');
     this.ghost1 = this.physics.add.image(256 + 16, 320 + 16, 'ghost1');
     this.ghost2 = this.physics.add.image(288 + 16, 320 + 16, 'ghost2');
     this.ghost3 = this.physics.add.image(320 + 16, 320 + 16, 'ghost3');
@@ -52,7 +62,7 @@ export default class PacmanScene extends Phaser.Scene {
       if(this.lifes >0){
         this.player.angle = 0;
         this.player.setVelocity(0, 0);
-        this.player.setPosition(32 +16, 32 +16);
+        this.player.setPosition(32*9 + 16, 32*12 + 16);
         this.ghost1.setPosition(256 + 16, 320 + 16);
         this.ghost2.setPosition(288 + 16, 320 + 16);
         this.ghost3.setPosition(320 + 16, 320 + 16);
@@ -79,19 +89,30 @@ export default class PacmanScene extends Phaser.Scene {
     //affichage score et vies restantes
 
     this.scoreDisplay =this.add.text(10, 10,'Score : ' + this.score , { fill: '#0f0' });
-    this.lifeDisplay =this.add.text(150, 10,'Lifes : 3 ' , { fill: '#0f0' });
+    this.lifeDisplay =this.add.text(150, 10,'Lifes : ' + this.lifes , { fill: '#0f0' });
+    this.levelDisplay =this.add.text(500, 10,'level : ' + this.level , { fill: '#0f0' });
+
 
     this.PilesNumber =this.countPiles ();
-    console.log(this.PilesNumber);
-
   }
   update() {
 
     var x = (Math.ceil(this.player.x/32)-1);
     var y = (Math.ceil(this.player.y/32)-1);
-    if (x >18)x=18
-    if (x <0)x=0
-    
+    if (x > 18) x = 18;
+    if (x < 0) x = 0;
+
+     // si toutes les piles ont étés mangé, quand pacman quitte la map => next level
+
+    if (x > 17 || x < 1){
+      this.block.destroy
+      if (this.pileCount >30*this.level){
+        this.level +=1
+        this.scene.restart()
+      }
+    }
+
+
     //suppression des piles 'mangés' par le Pacman 
 
     var playerPosition = this.map.getTileAt(x, y);
@@ -151,36 +172,30 @@ export default class PacmanScene extends Phaser.Scene {
       }
     }
   }
-  Collider(player, block, tile){
+  Collider(player, block){
 
-    var tileCollider =tile
       var collider = this.physics.add.overlap(player, block, function (playerOnBlock){
 
-
-      if (tileCollider.y === 10 && tileCollider.x <= 6){
+      if (player.x < 32){
         player.x=19*32-16
-        var tile = this.layer.getTileAtWorldXY(16*32 , 10*32, true);
-        console.log(tile)
+        var tile = this.layer.getTileAtWorldXY(17*32 , player.y, true);
 
-        var i = 0
-        while(tile.index !== 2 && i <20){
+        while(tile.index !== 2){
          tile = this.layer.getTileAtWorldXY(tile.pixelX -32 , tile.pixelY, true);
-         i++;
         }
-        block = this.physics.add.image(tile.pixelX +16 +5,tile.pixelY +16 , 'tile');
-        console.log(block)
+        block = this.physics.add.image(tile.pixelX +16 +2,tile.pixelY +16 , 'tile');
         block.visible = false;
           
         this.Collider(player,block,tile)
 
-        }else if (tileCollider.y === 10 && tileCollider.x >=12){
+        }else if (player.x > 17*32 +16){
            player.x=30
-          tile = this.layer.getTileAtWorldXY(2*32 , 10*32, true);
+          tile = this.layer.getTileAtWorldXY(2*32 , player.y, true);
           
           while(tile.index !== 2){
             tile = this.layer.getTileAtWorldXY(tile.pixelX +32, tile.pixelY, true);
           }
-          block = this.physics.add.image(tile.pixelX +16 -5,tile.pixelY +16 , 'tile');
+          block = this.physics.add.image(tile.pixelX +16 -2,tile.pixelY +16 , 'tile');
           block.visible = false;
           
           this.Collider(player,block,tile)
@@ -295,14 +310,21 @@ export default class PacmanScene extends Phaser.Scene {
     let tile = null;
     this.currentDirection = 'left';
     tile = this.layer.getTileAtWorldXY(this.player.x, this.player.y, true);
-    if (tile.y === 10 && tile.x <= 6) {
-      tile = this.layer.getTileAtWorldXY(16, tile.pixelY, true);
-      tile.pixelX = -50;
-    } else {
+    tile.index= 0;
+    var pixelY = tile.pixelY;
+
+
       while (tile.index !== 2) {
-        tile = this.layer.getTileAtWorldXY(tile.pixelX - 32, tile.pixelY, true);
+        if (tile !==null){
+          tile = this.layer.getTileAtWorldXY(tile.pixelX - 32, tile.pixelY, true);
+        if (tile ===null){
+          tile = this.layer.getTileAtWorldXY(16, pixelY, true);
+          tile.pixelX = -50;
+          break;
+        }
       }
-    }
+     }
+
     if (this.player.x - tile.pixelX > 32 + 18) {
       this.Center(this.player);
       this.player.angle = 180;
@@ -311,26 +333,37 @@ export default class PacmanScene extends Phaser.Scene {
         tile.pixelY + 16,
         'tile',
       );
+
+
       this.block.visible = true;
       this.previousDirection = 'left';
       // Move at 100 px/s:
       this.player.setVelocity(-100, 0);
-      this.Collider(this.player, this.block,tile);
+
+
+      this.Collider(this.player, this.block);
+
+
     }
   }
   moveRight() {
     let tile = null;
     this.currentDirection = 'right';
-
     tile = this.layer.getTileAtWorldXY(this.player.x, this.player.y, true);
-    if (tile.y === 10 && tile.x >= 12) {
-      tile = this.layer.getTileAtWorldXY(18 * 32 + 16, tile.pixelY, true);
-      tile.pixelX+= 50;
-    } else {
-      while (tile.index !== 2) {
+
+
+    while (tile.index !== 2) {
+      var pixelY = tile.pixelY;
+      if (tile !==null){
         tile = this.layer.getTileAtWorldXY(tile.pixelX + 32, tile.pixelY, true);
+      if (tile ===null){
+        tile = this.layer.getTileAtWorldXY(18 * 32 + 16, pixelY, true);
+        tile.pixelX = 19 * 32;
+        break;
       }
     }
+   }
+
     if (this.player.x - tile.pixelX < -18) {
       this.Center(this.player);
       this.player.angle = 0;
@@ -342,7 +375,7 @@ export default class PacmanScene extends Phaser.Scene {
       this.block.visible = true;
       this.previousDirection = 'right';
       this.player.setVelocity(+100, 0);
-      this.Collider(this.player, this.block,tile);
+      this.Collider(this.player, this.block);
     }
   }
   moveUp() {
@@ -367,7 +400,7 @@ export default class PacmanScene extends Phaser.Scene {
       // Move at 100 px/s:
       this.player.setVelocity(0, -100);
 
-      this.Collider(this.player, this.block,tile);
+      this.Collider(this.player, this.block);
     }
   }
   moveDown() {
@@ -392,7 +425,7 @@ export default class PacmanScene extends Phaser.Scene {
       // Move at 100 px/s:
       this.player.setVelocity(0, +100);
 
-      this.Collider(this.player, this.block,tile);
+      this.Collider(this.player, this.block);
     }
   }
 
