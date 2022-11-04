@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import WebFontFile from '../../public/WebFontFile'
 
 export default class PacmanScene extends Phaser.Scene {
 
@@ -6,10 +7,6 @@ export default class PacmanScene extends Phaser.Scene {
     super("PacmanScene");
 }
 
-// init(props) {
-//   const { level = 1 } = props
-//   this.currentLevel = level
-// }
   layer = null;
   player = null;
   map = null;
@@ -17,12 +14,17 @@ export default class PacmanScene extends Phaser.Scene {
   currentDirection = null;
   previousDirection = null;
   pileCount =0;
-  PilesNumber = 0;
+  pilesNumber = 0;
   score = 0;
   scoreDisplay= null;
   lifeDisplay= null;
   levelDisplay= null;
-  level = 1
+  level = 1;
+  speed= 250;
+  tab=[];
+  eatFantom=0;
+  gameOver= false;
+  newGame = true;
   
   preload() {
     this.load.image('tiles', 'assets/images/drawtiles-spaced.png');
@@ -34,14 +36,18 @@ export default class PacmanScene extends Phaser.Scene {
     this.load.image('ghost2', 'assets/images/Ghost2.png');
     this.load.image('ghost3', 'assets/images/Ghost3.png');
     this.load.image('ghost4', 'assets/images/Ghost4.png');
+    this.load.image('blueGhost', 'assets/images/BlueGhost.png');
+    const fonts = new WebFontFile(this.load, 'Pacifico')
+		this.load.addFile(fonts)
   }
 
   create() {
     this.map = this.make.tilemap({
-      key: 'level'+ this.level,
+      key:'level'+ this.level,
       tileWidth: 32,
       tileHeight: 32,
     });
+
     const tileset = this.map.addTilesetImage('tiles', null, 32, 32, 1, 2);
     this.layer = this.map.createLayer(0, tileset, 0, 0);
     this.player = this.physics.add.image(32*9 + 16, 32*12 + 16, 'pacman');
@@ -56,29 +62,103 @@ export default class PacmanScene extends Phaser.Scene {
     this.enemyGroup.add(this.ghost3, true);
     this.enemyGroup.add(this.ghost4, true);
 
+
+    //mise en tableau du CSV
+    var count = 0;
+    for(var y = 0; y < this.map.height; y++) {
+      for(var x = 0; x < this.map.width; x++) {
+        var tile =this.map.getTileAt(x, y);
+        if (tile.index === 3)
+          count  = count + 1;
+          if(!this.tab[y])this.tab[y] = [];
+        this.tab[y].push(tile.index);
+      }
+    }
+    console.log(this.tab);
+    this.pilesNumber = count;
+    this.pileCount = 0;
+
+     //Game Over message
+
+     this.gameOverText = this.add.text(300, 335, 'GAME OVER', {
+      fontSize: '50px',
+      color: '#0f0',
+      fontStyle: 'bold'
+    })
+
+    this.gameOverText.setOrigin(0.5);
+    this.gameOverText.visible = false
+
+    //New game message
+
+    var textY = 335;
+    this.newGameText =this.add.text(300, textY, 'Start new game', { fontFamily: 'pacifico',color: '#0f0',fontSize: '30px', });
+    this.newGameText.setInteractive();
+    this.newGameText.on('pointerdown',  () => this.newGamelaunch(this.newGame));
+
+    this.newGameText.setOrigin(0.5);
+    this.newGameText.visible = false
+   
+    //ecran de démarrage
+if (this.newGame == true){
+        this.newGameText.visible =true;
+
+        this.layer.setAlpha(0.1);
+        this.enemyGroup.setAlpha(0.1);
+        this.player.setAlpha(0.1);
+
+}
+// this.gameOver= false;
+  
+
     //rencontre entre Pacman et fantome
 
-    this.physics.add.overlap(this.player, this.enemyGroup, () => {
-      if(this.lifes >0){
-        this.player.angle = 0;
-        this.player.setVelocity(0, 0);
-        this.player.setPosition(32*9 + 16, 32*12 + 16);
-        this.ghost1.setPosition(256 + 16, 320 + 16);
-        this.ghost2.setPosition(288 + 16, 320 + 16);
-        this.ghost3.setPosition(320 + 16, 320 + 16);
-        this.ghost4.setPosition(288 + 16, 288 + 16);
-        this.previousDirection = null;
-        this.currentDirection = null;
-        this.block.destroy();
-        this.lifes -= 1;
-        this.lifeDisplay.setText('Lifes : ' + this.lifes )
-
+    this.physics.add.overlap(this.player, this.enemyGroup, (player,ghost) => {
+      if(this.eatFantom == 0){
+        if(this.lifes >0){
+          this.player.angle = 0;
+          this.player.setVelocity(0, 0);
+          this.player.setPosition(32*9 + 16, 32*12 + 16);
+          this.ghost1.setPosition(256 + 16, 320 + 16);
+          this.ghost2.setPosition(288 + 16, 320 + 16);
+          this.ghost3.setPosition(320 + 16, 320 + 16);
+          this.ghost4.setPosition(288 + 16, 288 + 16);
+          this.previousDirection = null;
+          this.currentDirection = null;
+          if(this.block)this.block.destroy();
+          this.lifes -= 1;
+          this.lifeDisplay.setText('Lifes : ' + this.lifes+ ' ' )
         }else{
 
-        // redirection écran Game Over
+          // redirection écran Game Over
+          this.newGame = false;
+          this.gameOver = true;
+          this.player.setVelocity(0, 0);
+          this.gameOverText.visible=true;
+          this.newGameText.visible =true;
+          this.newGameText.setPosition(300, 400);
+          this.layer.setAlpha(0.1);
+          this.enemyGroup.setAlpha(0.1);
+          this.player.setAlpha(0.1);
 
-          this.scene.start("Game Over",{score: this.score})
+            // this.scene.start("Game Over",{score: this.score})
         }
+      }else if (this.eatFantom ==1){
+        if(ghost== this.ghost1 ){
+                this.ghost1.setPosition(288 + 16, 320 + 16);
+              }
+        if(ghost== this.ghost2 ){
+                this.ghost2.setPosition(288 + 16, 320 + 16);
+              }
+        if(ghost== this.ghost3 ){
+                this.ghost3.setPosition(288 + 16, 320 + 16);
+              }
+        if(ghost== this.ghost4 ){
+                this.ghost4.setPosition(288 + 16, 320 + 16);
+              }
+
+        this.score +=300;
+      }
     });
 
     this.input.keyboard.on('keydown', (e) => this.pressKeyHandler(e));
@@ -87,13 +167,27 @@ export default class PacmanScene extends Phaser.Scene {
     }, 100);
 
     //affichage score et vies restantes
+    
+    this.scoreDisplay = this.add.text(450,-1, 'score: ' + this.score +' ', {
+          fontFamily: 'pacifico',
+          fontSize: '25px',
+          color: '#0f0',
+          fontStyle: 'italic'
+        })
 
-    this.scoreDisplay =this.add.text(10, 10,'Score : ' + this.score , { fill: '#0f0' });
-    this.lifeDisplay =this.add.text(150, 10,'Lifes : ' + this.lifes , { fill: '#0f0' });
-    this.levelDisplay =this.add.text(500, 10,'level : ' + this.level , { fill: '#0f0' });
+    this.lifeDisplay =this.add.text(160, -1,'lifes : ' + this.lifes + ' ' , {
+      fontFamily: 'pacifico',
+      fontSize: '25px',
+      color: '#0f0',
+      fontStyle: 'italic'
+    });
 
-
-    this.PilesNumber =this.countPiles ();
+    this.levelDisplay =this.add.text(32, -1,'level : ' + this.level +' ' , { 
+      fontFamily: 'pacifico',
+      fontSize: '25px',
+      color: '#0f0',
+      fontStyle: 'italic'
+    });
   }
   update() {
 
@@ -106,7 +200,9 @@ export default class PacmanScene extends Phaser.Scene {
 
     if (x > 17 || x < 1){
       this.block.destroy
-      if (this.pileCount >30*this.level){
+      // if (this.pileCount >30*this.level){
+      if (this.pileCount === this.pilesNumber){
+
         this.level +=1
         this.scene.restart()
       }
@@ -121,17 +217,35 @@ export default class PacmanScene extends Phaser.Scene {
       playerPosition.index = 0;
         this.pileCount++;
         this.score += 100;
+        // console.log(this.pileCount + '/' +this.pilesNumber)
 
     }
+    if(playerPosition.index === 4) { 
+      playerPosition.index = 0;
+      this.Ghost(0);
+
+      setTimeout(() => {this.Ghost(1)}, 4000);
+      setTimeout(() => {this.Ghost(0)}, 4100);
+      setTimeout(() => {this.Ghost(1)}, 4200);
+      setTimeout(() => {this.Ghost(0)}, 4300);
+      setTimeout(() => {this.Ghost(1)}, 4400);
+      setTimeout(() => {this.Ghost(0)}, 4500);
+      setTimeout(() => {this.Ghost(1)}, 4600);
+      setTimeout(() => {this.Ghost(0)}, 4700);
+      setTimeout(() => {this.Ghost(1)}, 4800);
+      setTimeout(() => {this.Ghost(0)}, 4900);
+      setTimeout(() => {this.Ghost(1)}, 5000);
+  
+    }  
 
     //mise à jour du score
 
-    this.scoreDisplay.setText('Score : ' + this.score )
+    this.scoreDisplay.setText('Score : ' + this.score+' ')
   }
 
   Center(player) {
+    if (this.previousDirection)this.block.destroy();
     if (this.previousDirection === 'up') {
-      this.block.destroy();
       if (this.currentDirection !== 'down' && this.currentDirection !== 'up') {
         if ((player.y - 16) % 32 < 16) {
           player.y -= (player.y - 16) % 32;
@@ -140,7 +254,6 @@ export default class PacmanScene extends Phaser.Scene {
     }
 
     if (this.previousDirection === 'down') {
-      this.block.destroy();
       if (this.currentDirection !== 'up' && this.currentDirection !== 'down') {
         if ((player.y - 16) % 32 > 16) {
           player.y += 32 - ((player.y - 16) % 32);
@@ -149,7 +262,6 @@ export default class PacmanScene extends Phaser.Scene {
     }
 
     if (this.previousDirection === 'right') {
-      this.block.destroy();
       if (
         this.currentDirection !== 'right' &&
         this.currentDirection !== 'left'
@@ -161,7 +273,6 @@ export default class PacmanScene extends Phaser.Scene {
     }
 
     if (this.previousDirection === 'left') {
-      this.block.destroy();
       if (
         this.currentDirection !== 'right' &&
         this.currentDirection !== 'left'
@@ -172,8 +283,7 @@ export default class PacmanScene extends Phaser.Scene {
       }
     }
   }
-  Collider(player, block){
-
+  Collider(player, block,destroy = 0){
       var collider = this.physics.add.overlap(player, block, function (playerOnBlock){
 
       if (player.x < 32){
@@ -183,25 +293,27 @@ export default class PacmanScene extends Phaser.Scene {
         while(tile.index !== 2){
          tile = this.layer.getTileAtWorldXY(tile.pixelX -32 , tile.pixelY, true);
         }
-        block = this.physics.add.image(tile.pixelX +16 +2,tile.pixelY +16 , 'tile');
+        block = this.physics.add.image(tile.pixelX +16,tile.pixelY +16 , 'tile');
         block.visible = false;
-          
-        this.Collider(player,block,tile)
 
-        }else if (player.x > 17*32 +16){
+          
+        this.Collider(player,block,1)
+
+        }else if (player.x > 18*32){
            player.x=30
           tile = this.layer.getTileAtWorldXY(2*32 , player.y, true);
           
           while(tile.index !== 2){
             tile = this.layer.getTileAtWorldXY(tile.pixelX +32, tile.pixelY, true);
           }
-          block = this.physics.add.image(tile.pixelX +16 -2,tile.pixelY +16 , 'tile');
+          block = this.physics.add.image(tile.pixelX +16 ,tile.pixelY +16 , 'tile');
           block.visible = false;
           
-          this.Collider(player,block,tile)
+          this.Collider(player,block,1)
       
         }else{
           playerOnBlock.body.stop();
+          if (destroy ==1)block.destroy()
           this.physics.world.removeCollider(collider);
         }
       }, null, this);
@@ -210,6 +322,7 @@ export default class PacmanScene extends Phaser.Scene {
   // mouvement des fantomes
 
   moveDirection() {
+    if (this.gameOver === false && this.newGame == false ){
     let moveDir = ['left', 'right', 'up', 'down'];
     let arrGhost = [this.ghost1, this.ghost2, this.ghost3, this.ghost4];
     let tile = null;
@@ -272,8 +385,10 @@ export default class PacmanScene extends Phaser.Scene {
       }
     }
   }
-
+  }
+ 
   pressKeyHandler(e) {
+    if (this.gameOver === false && this.newGame == false ){
     switch (e.key) {
       //Left
 
@@ -304,13 +419,13 @@ export default class PacmanScene extends Phaser.Scene {
       default:
         null;
     }
+    }
   }
 
   moveLeft() {
     let tile = null;
     this.currentDirection = 'left';
     tile = this.layer.getTileAtWorldXY(this.player.x, this.player.y, true);
-    tile.index= 0;
     var pixelY = tile.pixelY;
 
 
@@ -335,10 +450,10 @@ export default class PacmanScene extends Phaser.Scene {
       );
 
 
-      this.block.visible = true;
+      this.block.visible = false;
       this.previousDirection = 'left';
       // Move at 100 px/s:
-      this.player.setVelocity(-100, 0);
+      this.player.setVelocity(-this.speed + 0.05*this.level, 0);
 
 
       this.Collider(this.player, this.block);
@@ -372,9 +487,9 @@ export default class PacmanScene extends Phaser.Scene {
         tile.pixelY + 16,
         'tile',
       );
-      this.block.visible = true;
+      this.block.visible = false;
       this.previousDirection = 'right';
-      this.player.setVelocity(+100, 0);
+      this.player.setVelocity(+this.speed + 0.05*this.level, 0);
       this.Collider(this.player, this.block);
     }
   }
@@ -394,11 +509,11 @@ export default class PacmanScene extends Phaser.Scene {
         tile.pixelY + 16 + 5,
         'tile',
       );
-      this.block.visible = true;
+      this.block.visible = false;
       this.previousDirection = 'up';
 
       // Move at 100 px/s:
-      this.player.setVelocity(0, -100);
+      this.player.setVelocity(0, -this.speed + 0.05*this.level);
 
       this.Collider(this.player, this.block);
     }
@@ -419,28 +534,54 @@ export default class PacmanScene extends Phaser.Scene {
         tile.pixelY + 16 - 5,
         'tile',
       );
-      this.block.visible = true;
+      this.block.visible = false;
       this.previousDirection = 'down';
 
       // Move at 100 px/s:
-      this.player.setVelocity(0, +100);
+      this.player.setVelocity(0, +this.speed + 0.05*this.level);
 
       this.Collider(this.player, this.block);
     }
   }
-
-  //Le nombres de piles peux changer selon les niveaux
-
-  countPiles () {
-    var count = 0
-    for(var y = 0; y < this.map.height; y++) {
-      for(var x = 0; x < this.map.width; x++) {
-        var tile =this.map.getTileAt(x, y);
-        if (tile.index === 3)
-          count++
-
-      }
+  
+  Ghost(number){
+    if( number%2==0){
+      this.eatFantom = 1;
+      this.ghost1.setTexture('blueGhost');
+      this.ghost2.setTexture('blueGhost');
+      this.ghost3.setTexture('blueGhost');
+      this.ghost4.setTexture('blueGhost');
     }
-    return count
+    else{
+      setTimeout(() => {this.eatFantom = 0}, 1000);
+      this.ghost1.setTexture('ghost2');
+      this.ghost2.setTexture('ghost2');
+      this.ghost3.setTexture('ghost3');
+      this.ghost4.setTexture('ghost4');     
+      }
+  }
+
+  newGamelaunch(newGame){
+    if (newGame==true) {
+      this.newGameText.visible =false;
+
+      this.layer.setAlpha(1);
+      this.enemyGroup.setAlpha(1);
+      this.player.setAlpha(1);
+      this.newGame =false;
+// this.gameOver= true;
+
+
+  }else{
+this.gameOver= false;
+this.newGame =false;
+
+this.level=1
+this.score=0;
+this.lifes=3;
+
+
+    this.scene.restart();
+  }
   }
 }

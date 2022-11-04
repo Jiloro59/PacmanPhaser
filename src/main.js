@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import PacmanScene from './scenes/PacmanScene';
-import Start from './scenes/Start';
+// import Start from './scenes/Start';
 import GameOver from './scenes/GameOver';
 
 
@@ -17,10 +17,10 @@ const config = {
     default: 'arcade',
     arcade: {
       //   gravity: { y: 200 },
-      debug: true,
+      // debug: true,
     },
   },
-  scene: [Start,PacmanScene,GameOver]
+  scene: [PacmanScene,GameOver]
 };
 
 export default new Phaser.Game(config);

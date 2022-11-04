@@ -24,7 +24,8 @@
 		"parcel-plugin-static-files-copy": "^2.4.3"
 	},
 	"dependencies": {
-		"phaser": "^3.55.2"
+		"phaser": "^3.55.2",
+		"webfontloader": "^1.6.28"
 	},
 	"parcelCleanPaths": [
 		"dist"
